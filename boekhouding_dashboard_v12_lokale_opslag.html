@@ -1,0 +1,1235 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Boekhouding Dashboard v12 - lokale opslag</title>
+<style>
+  :root{
+    --bg:#f5f7fb; --card:#ffffff; --text:#111827; --muted:#6b7280; --line:#e5e7eb;
+    --blue:#2563eb; --purple:#7c3aed; --teal:#0f766e; --green:#15803d; --orange:#d97706; --red:#dc2626;
+    --shadow:0 12px 30px rgba(15,23,42,.08); --radius:20px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#f8fbff 0%,#f5f7fb 100%);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text)}
+  .wrap{max-width:1320px;margin:0 auto;padding:22px}
+  .top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
+  h1{margin:0;font-size:32px}
+  .sub{color:var(--muted);margin-top:6px}
+  .pill{background:#eef2ff;color:#3730a3;padding:10px 14px;border-radius:999px;font-size:14px;font-weight:600}
+  .tabs{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+  .tab-btn{border:1px solid var(--line);background:#fff;color:#111827;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+  .tab-btn.active{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border-color:transparent}
+  .tab-btn:hover{background:#f8fafc}
+  .panel{display:none}
+  .panel.active{display:block}
+  .grid{display:grid;gap:16px}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .two{grid-template-columns:1.2fr .8fr}
+  .three{grid-template-columns:repeat(3,1fr)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+  .card h2{margin:0 0 14px;font-size:18px}
+  .card h3{margin:0 0 10px;font-size:15px}
+  .kpi-title{color:var(--muted);font-size:14px}
+  .kpi-value{font-size:30px;font-weight:700;margin-top:8px}
+  .blue{color:var(--blue)} .purple{color:var(--purple)} .green{color:var(--green)} .orange{color:var(--orange)} .red{color:var(--red)}
+  .form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .full{grid-column:1/-1}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+  input,select,textarea{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:12px;background:#fff;font-size:14px}
+  textarea{min-height:140px;resize:vertical}
+  button{border:0;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;padding:12px 16px;border-radius:12px;font-weight:700;cursor:pointer}
+  .btn-secondary{background:linear-gradient(135deg,#0f766e,#0891b2)}
+  .btn-danger{background:linear-gradient(135deg,#b91c1c,#dc2626)}
+  .btn-soft{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top}
+  th{color:var(--muted);font-weight:600}
+  .tag{display:inline-block;padding:6px 10px;border-radius:999px;background:#f3f4f6;font-size:12px}
+  .tag.ok{background:#ecfdf5;color:#166534}
+  .tag.warn{background:#fff7ed;color:#9a3412}
+  .tag.bad{background:#fef2f2;color:#991b1b}
+  .list{display:grid;gap:10px}
+  .row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .muted{color:var(--muted)}
+  .empty{color:var(--muted);font-style:italic}
+  .small{font-size:12px;color:var(--muted)}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .right{text-align:right}
+  .danger{color:var(--red)}
+  .success{color:var(--green)}
+  .hero{
+    background:linear-gradient(135deg,#1d4ed8 0%,#7c3aed 100%);
+    color:#fff;border-radius:24px;padding:20px 22px;box-shadow:var(--shadow);margin-bottom:16px
+  }
+  .hero-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:16px;align-items:center}
+  .hero h2{margin:0 0 8px;font-size:26px}
+  .hero p{margin:0;color:rgba(255,255,255,.88)}
+  .hero-stat{background:rgba(255,255,255,.12);padding:14px;border-radius:16px}
+  .hero-stat .label{font-size:12px;opacity:.85}
+  .hero-stat .value{font-size:26px;font-weight:800;margin-top:6px}
+  .month-bars{display:grid;gap:10px}
+  .bar-row{display:grid;grid-template-columns:90px 1fr 120px;gap:12px;align-items:center}
+  .bar-track{height:12px;background:#eef2ff;border-radius:999px;overflow:hidden}
+  .bar-fill{height:100%;background:linear-gradient(135deg,#2563eb,#7c3aed);border-radius:999px}
+  .notice{padding:12px 14px;border-radius:14px;background:#fff7ed;color:#9a3412;font-size:13px}
+  .status-box{margin-top:12px;padding:12px 14px;border-radius:14px;background:#f8fafc;border:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .status-box strong{color:var(--text)}
+  @media (max-width:1000px){.kpis,.three,.two,.split,.hero-grid{grid-template-columns:1fr}}
+  @media (max-width:640px){.kpis,.form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Boekhouding Dashboard v12</h1>
+      <div class="sub">Één bestand met invoer, balans, controles, jaarafsluiting en belastingoverzicht.</div>
+    </div>
+    <div class="pill">v12 • lokale JSON opslag toegevoegd</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-grid">
+      <div>
+        <h2>Jouw alles-in-één boekhoud dashboard</h2>
+        <p>Werk vanuit één bestand. Voer posten in, bewaak je balans en bekijk meteen je btw- en jaaroverzicht.</p>
+      </div>
+      <div class="grid two" style="grid-template-columns:1fr 1fr">
+        <div class="hero-stat">
+          <div class="label">Winst vóór privé</div>
+          <div class="value" id="heroProfit">€ 0,00</div>
+        </div>
+        <div class="hero-stat">
+          <div class="label">Balansstatus</div>
+          <div class="value" id="heroBalance">OK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="nieuwe-post">Nieuwe post</button>
+    <button class="tab-btn" data-tab="facturen">Facturen</button>
+    <button class="tab-btn" data-tab="uitgaven">Uitgaven</button>
+    <button class="tab-btn" data-tab="balans">Balans</button>
+    <button class="tab-btn" data-tab="controles">Controles</button>
+    <button class="tab-btn" data-tab="offertes">Offertes</button>
+    <button class="tab-btn" data-tab="btw">BTW kwartaal</button>
+    <button class="tab-btn" data-tab="jaarafsluiting">Jaarafsluiting</button>
+    <button class="tab-btn" data-tab="backup">Back-up</button>
+  </div>
+
+  <section class="panel active" id="tab-dashboard">
+    <div class="grid kpis" id="kpis"></div>
+    <div class="grid two" style="margin-top:16px">
+      <div class="card">
+        <h2>Snelle status</h2>
+        <div class="list" id="quickStatus"></div>
+      </div>
+      <div class="card">
+        <h2>Deze maand</h2>
+        <div class="list" id="thisMonth"></div>
+      </div>
+    </div>
+    <div class="grid two" style="margin-top:16px">
+      <div class="card">
+        <h2>Omzet per maand</h2>
+        <div id="monthlyBars" class="month-bars"></div>
+      </div>
+      <div class="card">
+        <h2>Belastingmoment</h2>
+        <div class="list" id="taxHighlights"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <h2 style="margin:0">Laatste posten</h2>
+        <div class="toolbar">
+          <button class="btn-secondary" onclick="loadDemo()">Demo laden</button>
+          <button class="btn-danger" onclick="clearAllData()">Alles leegmaken</button>
+        </div>
+      </div>
+      <div id="recentTable" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-nieuwe-post">
+    <div class="grid two">
+      <div class="card">
+        <h2>Post toevoegen</h2>
+        <div class="form">
+          <div><label>Datum</label><input id="f-date" type="date"></div>
+          <div><label>Type</label>
+            <select id="f-type">
+              <option>Omzetfactuur</option>
+              <option>Ontvangst klant</option>
+              <option>Uitgave betaald</option>
+              <option>Uitgave onbetaald</option>
+              <option>Betaling openstaande uitgave</option>
+              <option>Privé opname</option>
+              <option>Privé storting</option>
+              <option>BTW betaling</option>
+              <option>Investering betaald</option>
+              <option>Investering onbetaald</option>
+              <option>Afschrijving</option>
+            </select>
+          </div>
+          <div class="full"><label>Omschrijving</label><input id="f-desc" placeholder="Bijvoorbeeld lunch met klant, factuur april, laptop"></div>
+          <div><label>Relatie</label><input id="f-relation" placeholder="Klant of leverancier"></div>
+          <div><label>Factuurnummer</label><input id="f-invoice" placeholder="Optioneel"></div>
+          <div><label>Categorie</label>
+            <select id="f-category">
+              <option>Omzet hoog</option>
+              <option>Omzet nul</option>
+              <option>Uitbesteed werk</option>
+              <option>Afschrijving</option>
+              <option>Opleiding</option>
+              <option>Representatie</option>
+              <option>Kantoor</option>
+              <option>Telefoon/internet</option>
+              <option>Abonnementen</option>
+              <option>Verzekeringen</option>
+              <option>Algemene kosten</option>
+              <option>Bedrijfsmiddelen</option>
+              <option>Prive</option>
+            </select>
+          </div>
+          <div><label>Bedrag excl. btw</label><input id="f-amount" type="number" step="0.01" placeholder="0,00"></div>
+          <div><label>BTW %</label>
+            <select id="f-vat">
+              <option value="0.21">21%</option>
+              <option value="0.09">9%</option>
+              <option value="0">0%</option>
+            </select>
+          </div>
+          <div class="full toolbar">
+            <button onclick="addEntry()">Post opslaan</button>
+            <button class="btn-secondary" onclick="prefillByType()">Type slim invullen</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Automatische fiscale logica</h2>
+        <div class="list">
+          <div class="row"><div class="muted">Representatie</div><div><span class="tag warn">80% aftrekbaar / 20% niet aftrekbaar</span></div></div>
+          <div class="row"><div class="muted">Telefoon/internet</div><div><span class="tag warn">50% aftrekbaar / 50% privé</span></div></div>
+          <div class="row"><div class="muted">Investering</div><div><span class="tag warn">Signaal bij hogere bedragen</span></div></div>
+          <div class="row"><div class="muted">BTW</div><div><span class="tag ok">Wordt automatisch berekend</span></div></div>
+          <div class="row"><div class="muted">Balans</div><div><span class="tag ok">Loopt automatisch mee</span></div></div>
+        </div>
+        <div class="notice" style="margin-top:14px">
+          Tip: gebruik voor grotere aankopen zoals laptop, camera of telefoon meestal het type <strong>Investering betaald</strong> of <strong>Investering onbetaald</strong>.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-facturen">
+    <div class="card">
+      <h2>Facturen en ontvangsten</h2>
+      <div id="invoiceTable"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-uitgaven">
+    <div class="card">
+      <h2>Uitgaven</h2>
+      <div id="expenseTable"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-balans">
+    <div class="grid two">
+      <div class="card">
+        <h2>Activa</h2>
+        <div class="list" id="assetsList"></div>
+      </div>
+      <div class="card">
+        <h2>Passiva</h2>
+        <div class="list" id="liabilitiesList"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Balanscontrole</h2>
+      <div class="split">
+        <div>
+          <label>Werkelijk banksaldo</label>
+          <input id="realBankInput" type="number" step="0.01" placeholder="Vul je echte banksaldo in" />
+        </div>
+        <div>
+          <label>Opmerking</label>
+          <input id="realBankNote" placeholder="Bijvoorbeeld peildatum 31-12-2026">
+        </div>
+      </div>
+      <div class="list" id="balanceCheck" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-controles">
+    <div class="grid two">
+      <div class="card">
+        <h2>Waarschuwingen</h2>
+        <div id="warningsList"></div>
+      </div>
+      <div class="card">
+        <h2>Open posten</h2>
+        <div id="openItemsList"></div>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="panel" id="tab-offertes">
+    <div class="grid two">
+      <div class="card">
+        <h2>Nieuwe offerte</h2>
+        <div class="form">
+          <div><label>Datum</label><input id="o-date" type="date"></div>
+          <div><label>Offertenummer</label><input id="o-number" placeholder="Bijv. OFF-2026-001"></div>
+          <div><label>Klant</label><input id="o-client" placeholder="Naam klant"></div>
+          <div><label>Project / omschrijving</label><input id="o-desc" placeholder="Bijv. communicatiecampagne"></div>
+          <div><label>Bedrag excl. btw</label><input id="o-amount" type="number" step="0.01" placeholder="0,00"></div>
+          <div><label>BTW %</label>
+            <select id="o-vat">
+              <option value="0.21">21%</option>
+              <option value="0.09">9%</option>
+              <option value="0">0%</option>
+            </select>
+          </div>
+          <div><label>Status</label>
+            <select id="o-status">
+              <option>Concept</option>
+              <option>Verzonden</option>
+              <option>Geaccepteerd</option>
+              <option>Afgewezen</option>
+            </select>
+          </div>
+          <div><label>Factuurnummer bij omzetting</label><input id="o-invoice" placeholder="Bijv. 2026-014"></div>
+          <div class="full toolbar">
+            <button onclick="addQuote()">Offerte opslaan</button>
+            <button class="btn-secondary" onclick="convertLatestAcceptedQuote()">Laatste geaccepteerde omzetten</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Offerte naar factuur</h2>
+        <div class="list">
+          <div class="row"><div class="muted">1. Offerte opslaan</div><div><span class="tag ok">Gereed</span></div></div>
+          <div class="row"><div class="muted">2. Status op geaccepteerd zetten</div><div><span class="tag ok">Gereed</span></div></div>
+          <div class="row"><div class="muted">3. Omzetten naar omzetfactuur</div><div><span class="tag ok">Gereed</span></div></div>
+        </div>
+        <div class="notice" style="margin-top:14px">Na omzetting maakt het dashboard automatisch een <strong>Omzetfactuur</strong> aan in je administratie.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Offerte-overzicht</h2>
+      <div id="quotesTable"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-btw">
+    <div class="grid two">
+      <div class="card">
+        <h2>BTW per kwartaal</h2>
+        <div id="btwQuarterTable"></div>
+      </div>
+      <div class="card">
+        <h2>BTW reminders</h2>
+        <div id="btwReminders"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-jaarafsluiting">
+    <div class="grid two">
+      <div class="card">
+        <h2>Belastingoverzicht jaar</h2>
+        <div class="list" id="yearTaxSummary"></div>
+      </div>
+      <div class="card">
+        <h2>Winst & resultaat</h2>
+        <div class="list" id="yearProfitSummary"></div>
+      </div>
+    </div>
+    <div class="grid three" style="margin-top:16px">
+      <div class="card">
+        <h2>Niet aftrekbare delen</h2>
+        <div id="nonDeductibleBreakdown"></div>
+      </div>
+      <div class="card">
+        <h2>Controlepunten jaarafsluiting</h2>
+        <div id="yearChecklist"></div>
+      </div>
+      <div class="card">
+        <h2>Exporteer samenvatting</h2>
+        <div class="toolbar">
+          <button onclick="downloadYearSummary()">Jaaroverzicht TXT</button>
+          <button class="btn-secondary" onclick="copyYearSummary()">Kopieer samenvatting</button>
+        </div>
+        <div class="small" style="margin-top:12px">Handig als basis voor je accountant of je eigen belastingaangifte.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-backup">
+    <div class="grid two">
+      <div class="card">
+        <h2>Back-up en export</h2>
+        <div class="toolbar">
+          <button onclick="downloadJSON()">JSON back-up downloaden</button>
+          <button class="btn-secondary" onclick="downloadCSV()">CSV export</button>
+        </div>
+        <div class="small" style="margin-top:12px">JSON is handig als volledige reservekopie. CSV is handig voor Excel of extra controle.</div>
+        <div class="notice" style="margin-top:14px">Nieuw: je kunt nu ook een lokaal JSON-bestand kiezen, daaruit ophalen en daarna wijzigingen terug opslaan.</div>
+      </div>
+      <div class="card">
+        <h2>Import</h2>
+        <label class="btn-secondary" style="display:inline-flex;align-items:center;padding:12px 16px;border-radius:12px;color:#fff;cursor:pointer">
+          JSON importeren
+          <input type="file" id="jsonFile" accept=".json" style="display:none" onchange="importJSON(event)">
+        </label>
+        <div class="small" style="margin-top:12px">Import overschrijft je huidige lokale gegevens.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Lokale opslag in eigen bestand</h2>
+      <div class="toolbar">
+        <button onclick="chooseLocalFile()">Kies / maak lokaal opslagbestand</button>
+        <button class="btn-secondary" onclick="loadFromLocalFile()">Ophalen uit lokaal bestand</button>
+        <button class="btn-secondary" onclick="saveToLocalFile()">Opslaan naar lokaal bestand</button>
+        <button class="btn-soft" onclick="toggleAutoSaveToLocalFile()" id="autoSaveBtn">Auto-save: uit</button>
+      </div>
+      <div class="status-box" id="localFileStatus">Nog geen lokaal opslagbestand gekozen. Gebruik Chrome of Edge voor deze functie.</div>
+      <div class="small" style="margin-top:12px">Let op: browsers vragen bewust toestemming. In Safari of op streng beveiligde werkcomputers kan deze lokale opslagfunctie niet beschikbaar zijn. De gewone JSON-download blijft altijd werken.</div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Ruwe data boekingen</h2>
+      <textarea id="rawData" readonly></textarea>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Ruwe data offertes</h2>
+      <textarea id="rawQuotes" readonly></textarea>
+    </div>
+  </section>
+</div>
+
+<script>
+const STORAGE_KEY = "boekhouding_dashboard_v12_data";
+const SETTINGS_KEY = "boekhouding_dashboard_v12_settings";
+const QUOTES_KEY = "boekhouding_dashboard_v12_quotes";
+
+let localFileHandle = null;
+let autoSaveLocalFile = false;
+let autoSaveTimer = null;
+
+function euros(v){ return new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(v || 0); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function uid(){ return "BK-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,7); }
+
+function getData(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch(e){ return []; } }
+function saveData(entries){ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); queueAutoSaveToLocalFile(); }
+function getSettings(){ try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); } catch(e){ return {}; } }
+function saveSettings(obj){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(obj)); queueAutoSaveToLocalFile(); }
+function getQuotes(){ try { return JSON.parse(localStorage.getItem(QUOTES_KEY) || "[]"); } catch(e){ return []; } }
+function saveQuotes(quotes){ localStorage.setItem(QUOTES_KEY, JSON.stringify(quotes)); queueAutoSaveToLocalFile(); }
+
+function deductibleRatio(category){
+  if(category === "Representatie") return 0.8;
+  if(category === "Telefoon/internet") return 0.5;
+  return 1;
+}
+function vatAmount(entry){ return +(entry.amount * entry.vat).toFixed(2); }
+function totalIncl(entry){ return +(entry.amount + vatAmount(entry)).toFixed(2); }
+
+function signal(entry){
+  if(["Uitgave betaald","Uitgave onbetaald"].includes(entry.type) && entry.category === "Representatie") return "20% niet aftrekbaar";
+  if(["Uitgave betaald","Uitgave onbetaald"].includes(entry.type) && entry.category === "Telefoon/internet") return "50% privédeel";
+  if(["Uitgave betaald","Uitgave onbetaald"].includes(entry.type) && entry.amount >= 450) return "Mogelijk investering";
+  if(["Omzetfactuur","Ontvangst klant"].includes(entry.type) && !entry.invoice) return "Factuurnummer ontbreekt";
+  return "";
+}
+function bankImpact(entry){
+  const total = totalIncl(entry);
+  if(["Ontvangst klant","Privé storting"].includes(entry.type)) return total;
+  if(["Uitgave betaald","Betaling openstaande uitgave","Privé opname","BTW betaling","Investering betaald"].includes(entry.type)) return -total;
+  return 0;
+}
+function debiteurenDelta(entry){
+  const total = totalIncl(entry);
+  if(entry.type === "Omzetfactuur") return total;
+  if(entry.type === "Ontvangst klant") return -total;
+  return 0;
+}
+function crediteurenDelta(entry){
+  const total = totalIncl(entry);
+  if(["Uitgave onbetaald","Investering onbetaald"].includes(entry.type)) return total;
+  if(entry.type === "Betaling openstaande uitgave") return -total;
+  return 0;
+}
+function bedrijfsmiddelenDelta(entry){
+  if(["Investering betaald","Investering onbetaald"].includes(entry.type)) return entry.amount;
+  return 0;
+}
+function afschrijvingDelta(entry){
+  if(entry.type === "Afschrijving") return entry.amount;
+  return 0;
+}
+function btwDelta(entry){
+  if(entry.type === "Omzetfactuur") return vatAmount(entry);
+  if(["Uitgave betaald","Uitgave onbetaald","Investering betaald","Investering onbetaald"].includes(entry.type)) return -vatAmount(entry);
+  if(entry.type === "BTW betaling") return -totalIncl(entry);
+  return 0;
+}
+function eigenVermogenDelta(entry){
+  const deductible = entry.amount * deductibleRatio(entry.category);
+  const privatePart = Math.max(0, entry.amount - deductible);
+  if(entry.type === "Privé opname") return -totalIncl(entry);
+  if(entry.type === "Privé storting") return totalIncl(entry);
+  if(["Uitgave betaald","Uitgave onbetaald"].includes(entry.type)) return -privatePart;
+  if(entry.type === "Afschrijving") return -entry.amount;
+  if(entry.type === "Omzetfactuur") return entry.amount;
+  return 0;
+}
+function monthKey(dateString){
+  const d = new Date(dateString);
+  if (isNaN(d)) return "";
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+}
+function monthLabel(key){
+  if(!key) return "";
+  const [y,m] = key.split("-");
+  const dt = new Date(Number(y), Number(m)-1, 1);
+  return dt.toLocaleDateString("nl-NL",{month:"short", year:"numeric"});
+}
+
+function calculate(entries){
+  const m = {
+    omzet:0, ontvangen:0, kostenAftrekbaar:0, priveNiet:0, winst:0,
+    bank:0, debiteuren:0, crediteuren:0, btw:0, bedrijfsmiddelen:0, afschrijving:0, ev:0,
+    warnings:[], openFacturen:[], openUitgaven:[], monthly:{},
+    nonDeductible:{representatie:0, telefoonInternet:0, priveOpnames:0}
+  };
+
+  entries.forEach(entry => {
+    const vat = vatAmount(entry);
+    const total = totalIncl(entry);
+    const deductible = +(entry.amount * deductibleRatio(entry.category)).toFixed(2);
+    const notDeductible = +(entry.amount - deductible).toFixed(2);
+    const sig = signal(entry);
+
+    if(entry.type === "Omzetfactuur") m.omzet += entry.amount;
+    if(entry.type === "Ontvangst klant") m.ontvangen += total;
+    if(["Uitgave betaald","Uitgave onbetaald"].includes(entry.type)) {
+      m.kostenAftrekbaar += deductible;
+      m.priveNiet += notDeductible;
+      if(entry.category === "Representatie") m.nonDeductible.representatie += notDeductible;
+      if(entry.category === "Telefoon/internet") m.nonDeductible.telefoonInternet += notDeductible;
+    }
+    if(entry.type === "Afschrijving") m.kostenAftrekbaar += entry.amount;
+    if(entry.type === "Privé opname") {
+      m.priveNiet += total;
+      m.nonDeductible.priveOpnames += total;
+    }
+
+    m.bank += bankImpact(entry);
+    m.debiteuren += debiteurenDelta(entry);
+    m.crediteuren += crediteurenDelta(entry);
+    m.bedrijfsmiddelen += bedrijfsmiddelenDelta(entry);
+    m.afschrijving += afschrijvingDelta(entry);
+    m.btw += btwDelta(entry);
+    m.ev += eigenVermogenDelta(entry);
+
+    if(sig) m.warnings.push({id:entry.id, desc:entry.desc, signal:sig, type:entry.type});
+    if(entry.type === "Omzetfactuur") m.openFacturen.push(entry);
+    if(["Uitgave onbetaald","Investering onbetaald"].includes(entry.type)) m.openUitgaven.push(entry);
+
+    const mk = monthKey(entry.date);
+    if(!m.monthly[mk]) m.monthly[mk] = {omzet:0, kosten:0};
+    if(entry.type === "Omzetfactuur") m.monthly[mk].omzet += entry.amount;
+    if(["Uitgave betaald","Uitgave onbetaald"].includes(entry.type)) m.monthly[mk].kosten += deductible;
+    if(entry.type === "Afschrijving") m.monthly[mk].kosten += entry.amount;
+  });
+
+  const receiptsByInvoice = {};
+  entries.filter(e => e.type === "Ontvangst klant" && e.invoice).forEach(e => {
+    receiptsByInvoice[e.invoice] = (receiptsByInvoice[e.invoice] || 0) + totalIncl(e);
+  });
+  m.openFacturen = m.openFacturen.filter(f => !f.invoice || Math.abs((receiptsByInvoice[f.invoice] || 0) - totalIncl(f)) > 0.01);
+
+  m.winst = +(m.omzet - m.kostenAftrekbaar).toFixed(2);
+  m.bedrijfsmiddelenNetto = +(m.bedrijfsmiddelen - m.afschrijving).toFixed(2);
+  m.btwTeVorderen = m.btw < 0 ? -m.btw : 0;
+  m.btwTeBetalen = m.btw > 0 ? m.btw : 0;
+  m.activa = +(m.bank + m.debiteuren + m.bedrijfsmiddelenNetto + m.btwTeVorderen).toFixed(2);
+  m.passiva = +(m.crediteuren + m.btwTeBetalen + m.ev).toFixed(2);
+  m.balanceDiff = +(m.activa - m.passiva).toFixed(2);
+  return m;
+}
+
+function render(){
+  const entries = getData();
+  const m = calculate(entries);
+  const settings = getSettings();
+
+  const quotes = getQuotes();
+  const quarterlyVAT = calculateQuarterlyVAT(entries);
+
+
+  document.getElementById("heroProfit").textContent = euros(m.winst);
+  document.getElementById("heroBalance").textContent = Math.abs(m.balanceDiff) < 0.01 ? "OK" : "CHECK";
+
+  const kpis = [
+    ["Omzet excl. btw", euros(m.omzet), "blue"],
+    ["Kosten aftrekbaar", euros(m.kostenAftrekbaar), ""],
+    ["Winst vóór privé", euros(m.winst), m.winst >= 0 ? "green" : "red"],
+    ["Bank volgens administratie", euros(m.bank), ""],
+    ["Debiteuren", euros(m.debiteuren), "orange"],
+    ["Crediteuren", euros(m.crediteuren), "orange"],
+    ["BTW saldo", euros(m.btw), m.btw > 0 ? "orange" : "green"],
+    ["Privé / niet aftrekbaar", euros(m.priveNiet), "purple"]
+  ];
+  document.getElementById("kpis").innerHTML = kpis.map(([title,val,cls]) => `
+    <div class="card"><div class="kpi-title">${title}</div><div class="kpi-value ${cls}">${val}</div></div>
+  `).join("");
+
+  document.getElementById("quickStatus").innerHTML = [
+    ["Open facturen", m.openFacturen.length, m.openFacturen.length ? "warn" : "ok"],
+    ["Open uitgaven", m.openUitgaven.length, m.openUitgaven.length ? "warn" : "ok"],
+    ["Waarschuwingen", m.warnings.length, m.warnings.length ? "warn" : "ok"],
+    ["Balansstatus", Math.abs(m.balanceDiff) < 0.01 ? "OK" : "CHECK", Math.abs(m.balanceDiff) < 0.01 ? "ok" : "bad"]
+  ].map(([label,val,tag]) => `<div class="row"><div class="muted">${label}</div><div><span class="tag ${tag}">${val}</span></div></div>`).join("");
+
+  const currentMonth = monthKey(today());
+  const current = m.monthly[currentMonth] || {omzet:0,kosten:0};
+  document.getElementById("thisMonth").innerHTML = [
+    ["Omzet", euros(current.omzet)],
+    ["Kosten", euros(current.kosten)],
+    ["Resultaat", euros(current.omzet - current.kosten)],
+    ["Peildatum bank", settings.realBankNote || "Nog niet ingevuld"]
+  ].map(([label,val]) => `<div class="row"><div class="muted">${label}</div><div>${val}</div></div>`).join("");
+
+  const months = Object.keys(m.monthly).sort();
+  const maxMonth = Math.max(1, ...months.map(k => m.monthly[k].omzet));
+  document.getElementById("monthlyBars").innerHTML = months.length ? months.map(k => {
+    const pct = (m.monthly[k].omzet / maxMonth) * 100;
+    return `<div class="bar-row"><div class="muted">${monthLabel(k)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div>${euros(m.monthly[k].omzet)}</div></div>`;
+  }).join("") : `<div class="empty">Nog geen omzetgegevens per maand.</div>`;
+
+  document.getElementById("taxHighlights").innerHTML = [
+    ["BTW te betalen", euros(m.btwTeBetalen)],
+    ["BTW te vorderen", euros(m.btwTeVorderen)],
+    ["Niet aftrekbaar totaal", euros(m.priveNiet)],
+    ["Controle facturen", m.openFacturen.length ? `${m.openFacturen.length} open` : "Geen open facturen"]
+  ].map(([label,val]) => `<div class="row"><div class="muted">${label}</div><div>${val}</div></div>`).join("");
+
+  document.getElementById("recentTable").innerHTML = renderTable(
+    entries.slice().sort((a,b) => (b.date+a.id).localeCompare(a.date+b.id)).slice(0,8),
+    true
+  );
+
+  const factEntries = entries.filter(e => e.type === "Omzetfactuur" || e.type === "Ontvangst klant");
+  document.getElementById("invoiceTable").innerHTML = renderDetailedTable(factEntries);
+
+  const expenseEntries = entries.filter(e => ["Uitgave betaald","Uitgave onbetaald","Betaling openstaande uitgave","Investering betaald","Investering onbetaald","Afschrijving"].includes(e.type));
+  document.getElementById("expenseTable").innerHTML = renderDetailedTable(expenseEntries);
+
+  document.getElementById("assetsList").innerHTML = [
+    ["Bank", euros(m.bank)],
+    ["Debiteuren", euros(m.debiteuren)],
+    ["Bedrijfsmiddelen netto", euros(m.bedrijfsmiddelenNetto)],
+    ["BTW te vorderen", euros(m.btwTeVorderen)],
+    ["Totaal activa", euros(m.activa)]
+  ].map(([label,val]) => `<div class="row"><div class="muted">${label}</div><div>${val}</div></div>`).join("");
+
+  document.getElementById("liabilitiesList").innerHTML = [
+    ["Crediteuren", euros(m.crediteuren)],
+    ["BTW te betalen", euros(m.btwTeBetalen)],
+    ["Eigen vermogen", euros(m.ev)],
+    ["Totaal passiva", euros(m.passiva)]
+  ].map(([label,val]) => `<div class="row"><div class="muted">${label}</div><div>${val}</div></div>`).join("");
+
+  document.getElementById("realBankInput").value = settings.realBank ?? "";
+  document.getElementById("realBankNote").value = settings.realBankNote ?? "";
+
+  const realBank = parseFloat(settings.realBank || 0);
+  const bankDiff = settings.realBank !== undefined && settings.realBank !== "" ? +(realBank - m.bank).toFixed(2) : null;
+
+  document.getElementById("balanceCheck").innerHTML = [
+    ["Werkelijk banksaldo", settings.realBank !== undefined && settings.realBank !== "" ? euros(realBank) : "Nog niet ingevuld", ""],
+    ["Verschil bank", bankDiff === null ? "Nog niet ingevuld" : euros(bankDiff), bankDiff === null ? "" : (Math.abs(bankDiff) < 0.01 ? "success" : "danger")],
+    ["Balansverschil", euros(m.balanceDiff), Math.abs(m.balanceDiff) < 0.01 ? "success" : "danger"],
+    ["Status", Math.abs(m.balanceDiff) < 0.01 ? "Balans klopt" : "Controle nodig", Math.abs(m.balanceDiff) < 0.01 ? "success" : "danger"]
+  ].map(([label,val,cls]) => `<div class="row"><div class="muted">${label}</div><div class="${cls}">${val}</div></div>`).join("");
+
+  document.getElementById("warningsList").innerHTML = m.warnings.length ? m.warnings.map(w => `
+    <div class="row"><div><strong>${w.desc}</strong><div class="small">${w.type}</div></div><div><span class="tag warn">${w.signal}</span></div></div>
+  `).join("") : `<div class="empty">Geen waarschuwingen.</div>`;
+
+  document.getElementById("openItemsList").innerHTML = `
+    ${m.openFacturen.length ? `<h3>Open facturen</h3>` : ""}
+    ${m.openFacturen.map(e => `<div class="row"><div><strong>${e.desc}</strong><div class="small">${e.invoice || "Geen factuurnummer"}</div></div><div>${euros(totalIncl(e))}</div></div>`).join("")}
+    ${m.openUitgaven.length ? `<h3 style="margin-top:14px">Open uitgaven</h3>` : ""}
+    ${m.openUitgaven.map(e => `<div class="row"><div><strong>${e.desc}</strong><div class="small">${e.relation || ""}</div></div><div>${euros(totalIncl(e))}</div></div>`).join("")}
+    ${(!m.openFacturen.length && !m.openUitgaven.length) ? `<div class="empty">Geen open posten.</div>` : ""}
+  `;
+
+  document.getElementById("yearTaxSummary").innerHTML = [
+    ["Omzet totaal", euros(m.omzet)],
+    ["BTW saldo", euros(m.btw)],
+    ["BTW te betalen", euros(m.btwTeBetalen)],
+    ["BTW te vorderen", euros(m.btwTeVorderen)],
+    ["Aftrekbare kosten", euros(m.kostenAftrekbaar)],
+    ["Niet aftrekbaar / privé", euros(m.priveNiet)]
+  ].map(([label,val]) => `<div class="row"><div class="muted">${label}</div><div>${val}</div></div>`).join("");
+
+  document.getElementById("yearProfitSummary").innerHTML = [
+    ["Winst vóór privé", euros(m.winst)],
+    ["Eigen vermogen mutatie", euros(m.ev)],
+    ["Bedrijfsmiddelen bruto", euros(m.bedrijfsmiddelen)],
+    ["Afschrijving", euros(m.afschrijving)],
+    ["Bedrijfsmiddelen netto", euros(m.bedrijfsmiddelenNetto)],
+    ["Balansverschil", euros(m.balanceDiff)]
+  ].map(([label,val]) => `<div class="row"><div class="muted">${label}</div><div>${val}</div></div>`).join("");
+
+  document.getElementById("nonDeductibleBreakdown").innerHTML = [
+    ["Representatie niet aftrekbaar", euros(m.nonDeductible.representatie)],
+    ["Telefoon/internet privédeel", euros(m.nonDeductible.telefoonInternet)],
+    ["Privé opnames", euros(m.nonDeductible.priveOpnames)],
+    ["Totaal", euros(m.priveNiet)]
+  ].map(([label,val]) => `<div class="row"><div class="muted">${label}</div><div>${val}</div></div>`).join("");
+
+  document.getElementById("yearChecklist").innerHTML = [
+    [m.openFacturen.length ? "Er staan nog open facturen." : "Geen open facturen.", m.openFacturen.length ? "warn" : "ok"],
+    [m.openUitgaven.length ? "Er staan nog open uitgaven." : "Geen open uitgaven.", m.openUitgaven.length ? "warn" : "ok"],
+    [m.warnings.length ? "Er zijn nog waarschuwingen in je boeking." : "Geen fiscale waarschuwingen.", m.warnings.length ? "warn" : "ok"],
+    [Math.abs(m.balanceDiff) < 0.01 ? "Balans lijkt te kloppen." : "Balans vraagt nog controle.", Math.abs(m.balanceDiff) < 0.01 ? "ok" : "bad"],
+    [settings.realBank ? "Werkelijk banksaldo is ingevuld." : "Werkelijk banksaldo nog invullen.", settings.realBank ? "ok" : "warn"]
+  ].map(([text,tag]) => `<div class="row"><div>${text}</div><div><span class="tag ${tag}">${tag === "ok" ? "OK" : "CHECK"}</span></div></div>`).join("");
+
+
+  document.getElementById("quotesTable").innerHTML = renderQuotesTable(quotes);
+  document.getElementById("btwQuarterTable").innerHTML = renderQuarterTable(quarterlyVAT);
+  document.getElementById("btwReminders").innerHTML = renderBTWReminders(quarterlyVAT);
+  document.getElementById("rawQuotes").value = JSON.stringify(quotes, null, 2);
+
+  document.getElementById("rawData").value = JSON.stringify(entries, null, 2);
+}
+
+function renderTable(entries, allowDelete){
+  if(!entries.length) return `<div class="empty">Nog geen posten ingevoerd.</div>`;
+  return `
+    <table>
+      <thead>
+        <tr><th>Datum</th><th>Type</th><th>Omschrijving</th><th>Categorie</th><th>Excl. btw</th><th>Controle</th>${allowDelete ? "<th></th>" : ""}</tr>
+      </thead>
+      <tbody>
+        ${entries.map(e => `
+          <tr>
+            <td>${e.date}</td>
+            <td>${e.type}</td>
+            <td>${e.desc}</td>
+            <td>${e.category}</td>
+            <td>${euros(e.amount)}</td>
+            <td>${signal(e) ? `<span class="tag warn">${signal(e)}</span>` : `<span class="tag ok">OK</span>`}</td>
+            ${allowDelete ? `<td class="right"><button class="btn-danger" style="padding:8px 10px" onclick="deleteEntry('${e.id}')">X</button></td>` : ""}
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderDetailedTable(entries){
+  if(!entries.length) return `<div class="empty">Nog geen posten.</div>`;
+  return `
+    <table>
+      <thead>
+        <tr>
+          <th>Datum</th><th>Type</th><th>Omschrijving</th><th>Relatie</th><th>Factuurnr</th>
+          <th>Categorie</th><th>Excl. btw</th><th>BTW</th><th>Incl. btw</th><th>Controle</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${entries.sort((a,b)=> (b.date+a.id).localeCompare(a.date+b.id)).map(e => `
+          <tr>
+            <td>${e.date}</td>
+            <td>${e.type}</td>
+            <td>${e.desc}</td>
+            <td>${e.relation || ""}</td>
+            <td>${e.invoice || ""}</td>
+            <td>${e.category}</td>
+            <td>${euros(e.amount)}</td>
+            <td>${euros(vatAmount(e))}</td>
+            <td>${euros(totalIncl(e))}</td>
+            <td>${signal(e) ? `<span class="tag warn">${signal(e)}</span>` : `<span class="tag ok">OK</span>`}</td>
+            <td class="right"><button class="btn-danger" style="padding:8px 10px" onclick="deleteEntry('${e.id}')">X</button></td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function addEntry(){
+  const entry = {
+    id: uid(),
+    date: document.getElementById("f-date").value,
+    type: document.getElementById("f-type").value,
+    desc: document.getElementById("f-desc").value.trim(),
+    relation: document.getElementById("f-relation").value.trim(),
+    invoice: document.getElementById("f-invoice").value.trim(),
+    category: document.getElementById("f-category").value,
+    amount: parseFloat(document.getElementById("f-amount").value || "0"),
+    vat: parseFloat(document.getElementById("f-vat").value || "0")
+  };
+  if(!entry.date || !entry.desc || entry.amount <= 0){
+    alert("Vul minimaal datum, omschrijving en bedrag in.");
+    return;
+  }
+  const entries = getData();
+  entries.push(entry);
+  saveData(entries);
+  document.getElementById("f-desc").value = "";
+  document.getElementById("f-relation").value = "";
+  document.getElementById("f-invoice").value = "";
+  document.getElementById("f-amount").value = "";
+  switchTab("dashboard");
+  render();
+}
+function deleteEntry(id){
+  if(!confirm("Deze post verwijderen?")) return;
+  saveData(getData().filter(e => e.id !== id));
+  render();
+}
+function prefillByType(){
+  const type = document.getElementById("f-type").value;
+  const category = document.getElementById("f-category");
+  const vat = document.getElementById("f-vat");
+  if(type === "Omzetfactuur" || type === "Ontvangst klant"){ category.value = "Omzet hoog"; vat.value = "0.21"; }
+  if(type === "Uitgave betaald" || type === "Uitgave onbetaald"){ category.value = "Algemene kosten"; vat.value = "0.21"; }
+  if(type === "Investering betaald" || type === "Investering onbetaald"){ category.value = "Bedrijfsmiddelen"; vat.value = "0.21"; }
+  if(type === "Afschrijving"){ category.value = "Afschrijving"; vat.value = "0"; }
+  if(type === "Privé opname" || type === "Privé storting"){ category.value = "Prive"; vat.value = "0"; }
+  if(type === "BTW betaling"){ category.value = "Algemene kosten"; vat.value = "0"; }
+}
+function loadDemo(){
+  const demo = [
+    {id:uid(),date:"2026-01-03",type:"Omzetfactuur",desc:"Factuur Provincie Gelderland",relation:"Provincie Gelderland",invoice:"2026-001",category:"Omzet hoog",amount:1500,vat:0.21},
+    {id:uid(),date:"2026-01-05",type:"Uitgave betaald",desc:"Lunch met opdrachtgever",relation:"Restaurant",invoice:"",category:"Representatie",amount:80,vat:0.21},
+    {id:uid(),date:"2026-01-07",type:"Uitgave betaald",desc:"Telefoonabonnement",relation:"Provider",invoice:"",category:"Telefoon/internet",amount:60,vat:0.21},
+    {id:uid(),date:"2026-01-12",type:"Ontvangst klant",desc:"Betaling factuur 2026-001",relation:"Provincie Gelderland",invoice:"2026-001",category:"Omzet hoog",amount:1500,vat:0.21},
+    {id:uid(),date:"2026-01-14",type:"Investering betaald",desc:"Nieuwe laptop",relation:"Webshop",invoice:"",category:"Bedrijfsmiddelen",amount:1200,vat:0.21},
+    {id:uid(),date:"2026-01-20",type:"Privé opname",desc:"Overboeking privé",relation:"",invoice:"",category:"Prive",amount:300,vat:0},
+    {id:uid(),date:"2026-02-10",type:"Uitgave onbetaald",desc:"Factuur vormgever",relation:"Freelancer",invoice:"INK-001",category:"Uitbesteed werk",amount:450,vat:0.21},
+    {id:uid(),date:"2026-02-18",type:"Afschrijving",desc:"Afschrijving laptop",relation:"",invoice:"",category:"Afschrijving",amount:50,vat:0}
+  ];
+  saveData(demo);
+  render();
+}
+function clearAllData(){
+  if(!confirm("Alles verwijderen uit dit dashboard?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SETTINGS_KEY);
+  localStorage.removeItem(QUOTES_KEY);
+  render();
+}
+function downloadJSON(){
+  const blob = new Blob([JSON.stringify({entries:getData(), quotes:getQuotes(), settings:getSettings()}, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "boekhouding_dashboard_v12_backup.json";
+  a.click();
+}
+function downloadCSV(){
+  const entries = getData();
+  if(!entries.length){ alert("Nog geen data om te exporteren."); return; }
+  const headers = ["Datum","Type","Omschrijving","Relatie","Factuurnr","Categorie","Bedrag excl. btw","BTW %","BTW bedrag","Bedrag incl. btw","Signaal"];
+  const rows = entries.map(e => [
+    e.date, e.type, e.desc, e.relation || "", e.invoice || "", e.category,
+    e.amount.toFixed(2).replace(".",","), e.vat.toString().replace(".",","), vatAmount(e).toFixed(2).replace(".",","), totalIncl(e).toFixed(2).replace(".",","), signal(e)
+  ]);
+  const escape = s => `"${String(s ?? "").replace(/"/g,'""')}"`;
+  const csv = [headers.map(escape).join(";")].concat(rows.map(r => r.map(escape).join(";"))).join("\n");
+  const blob = new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "boekhouding_dashboard_v12_export.csv";
+  a.click();
+}
+function buildYearSummaryText(){
+  const entries = getData();
+  const m = calculate(entries);
+  const settings = getSettings();
+
+  return [
+    "BOEKHOUDING JAAROVERZICHT",
+    "",
+    "Omzet totaal: " + euros(m.omzet),
+    "Aftrekbare kosten: " + euros(m.kostenAftrekbaar),
+    "Winst vóór privé: " + euros(m.winst),
+    "Niet aftrekbaar / privé: " + euros(m.priveNiet),
+    "",
+    "BTW saldo: " + euros(m.btw),
+    "BTW te betalen: " + euros(m.btwTeBetalen),
+    "BTW te vorderen: " + euros(m.btwTeVorderen),
+    "",
+    "Debiteuren: " + euros(m.debiteuren),
+    "Crediteuren: " + euros(m.crediteuren),
+    "Bedrijfsmiddelen netto: " + euros(m.bedrijfsmiddelenNetto),
+    "Eigen vermogen mutatie: " + euros(m.ev),
+    "Balansverschil: " + euros(m.balanceDiff),
+    "",
+    "Werkelijk banksaldo: " + (settings.realBank ? euros(parseFloat(settings.realBank)) : "niet ingevuld"),
+    "Opmerking bank: " + (settings.realBankNote || "")
+  ].join("\n");
+}
+function downloadYearSummary(){
+  const blob = new Blob([buildYearSummaryText()], {type:"text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "boekhouding_jaaroverzicht_v12.txt";
+  a.click();
+}
+function copyYearSummary(){
+  const txt = buildYearSummaryText();
+  navigator.clipboard.writeText(txt).then(() => alert("Jaaroverzicht gekopieerd."));
+}
+function importJSON(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = JSON.parse(e.target.result);
+      if(Array.isArray(data)){
+        saveData(data);
+      } else {
+        saveData(Array.isArray(data.entries) ? data.entries : []);
+        saveQuotes(Array.isArray(data.quotes) ? data.quotes : []);
+        if(data.settings && typeof data.settings === "object") saveSettings(data.settings);
+      }
+      render();
+      alert("Back-up geïmporteerd.");
+    } catch(err){
+      alert("Import mislukt.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function localFileSupported(){
+  return !!(window.showOpenFilePicker && window.showSaveFilePicker);
+}
+function currentBackupObject(){
+  return {
+    version: "Boekhouding Dashboard v12 lokale opslag",
+    exportedAt: new Date().toISOString(),
+    entries: getData(),
+    quotes: getQuotes(),
+    settings: getSettings()
+  };
+}
+function applyBackupObject(data){
+  if(Array.isArray(data)){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(QUOTES_KEY, JSON.stringify([]));
+  } else {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.isArray(data.entries) ? data.entries : []));
+    localStorage.setItem(QUOTES_KEY, JSON.stringify(Array.isArray(data.quotes) ? data.quotes : []));
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(data.settings && typeof data.settings === "object" ? data.settings : {}));
+  }
+}
+function updateLocalFileStatus(message){
+  const el = document.getElementById("localFileStatus");
+  if(!el) return;
+  const fileName = localFileHandle ? localFileHandle.name : "geen bestand gekozen";
+  const auto = autoSaveLocalFile ? "aan" : "uit";
+  el.innerHTML = `<strong>Bestand:</strong> ${fileName}<br><strong>Auto-save:</strong> ${auto}<br>${message || ""}`;
+  const btn = document.getElementById("autoSaveBtn");
+  if(btn) btn.textContent = "Auto-save: " + auto;
+}
+async function chooseLocalFile(){
+  if(!localFileSupported()){
+    alert("Deze functie werkt vooral in Chrome of Edge. Gebruik anders JSON back-up downloaden/importeren.");
+    updateLocalFileStatus("Lokale bestandstoegang wordt door deze browser niet ondersteund.");
+    return;
+  }
+  try{
+    const choice = confirm("Wil je een bestaand opslagbestand openen? Kies OK voor openen. Kies Annuleren om een nieuw bestand te maken.");
+    if(choice){
+      const handles = await window.showOpenFilePicker({
+        types: [{description:"Boekhouding JSON", accept:{"application/json":[".json"]}}],
+        multiple: false
+      });
+      localFileHandle = handles[0];
+      updateLocalFileStatus("Bestand gekozen. Klik op ‘Ophalen uit lokaal bestand’ om de inhoud te laden, of op ‘Opslaan naar lokaal bestand’ om huidige data weg te schrijven.");
+    } else {
+      localFileHandle = await window.showSaveFilePicker({
+        suggestedName: "boekhouding_dashboard_v12_data.json",
+        types: [{description:"Boekhouding JSON", accept:{"application/json":[".json"]}}]
+      });
+      await saveToLocalFile(false);
+      updateLocalFileStatus("Nieuw opslagbestand gemaakt en huidige dashboarddata opgeslagen.");
+    }
+  } catch(err){
+    if(err && err.name !== "AbortError") alert("Bestand kiezen is mislukt.");
+    updateLocalFileStatus("Geen wijziging. Er is nog geen lokaal bestand gekoppeld.");
+  }
+}
+async function saveToLocalFile(showAlert = true){
+  if(!localFileHandle){
+    await chooseLocalFile();
+    if(!localFileHandle) return;
+  }
+  try{
+    const writable = await localFileHandle.createWritable();
+    await writable.write(JSON.stringify(currentBackupObject(), null, 2));
+    await writable.close();
+    updateLocalFileStatus("Laatst opgeslagen: " + new Date().toLocaleString("nl-NL"));
+    if(showAlert) alert("Opgeslagen naar lokaal bestand.");
+  } catch(err){
+    alert("Opslaan naar lokaal bestand is mislukt. Controleer browserrechten of gebruik JSON back-up downloaden.");
+    updateLocalFileStatus("Opslaan mislukt.");
+  }
+}
+async function loadFromLocalFile(){
+  if(!localFileHandle){
+    await chooseLocalFile();
+    if(!localFileHandle) return;
+  }
+  try{
+    const file = await localFileHandle.getFile();
+    const text = await file.text();
+    const data = JSON.parse(text || "{}");
+    if(!confirm("Dit overschrijft de huidige gegevens in het dashboard. Doorgaan?")) return;
+    applyBackupObject(data);
+    render();
+    updateLocalFileStatus("Laatst opgehaald: " + new Date().toLocaleString("nl-NL"));
+    alert("Gegevens opgehaald uit lokaal bestand.");
+  } catch(err){
+    alert("Ophalen uit lokaal bestand is mislukt. Controleer of het een geldige JSON-back-up is.");
+    updateLocalFileStatus("Ophalen mislukt.");
+  }
+}
+function toggleAutoSaveToLocalFile(){
+  if(!localFileHandle){
+    alert("Kies eerst een lokaal opslagbestand.");
+    chooseLocalFile();
+    return;
+  }
+  autoSaveLocalFile = !autoSaveLocalFile;
+  updateLocalFileStatus(autoSaveLocalFile ? "Auto-save staat aan. Wijzigingen worden kort na invoer opgeslagen." : "Auto-save staat uit. Gebruik de knop ‘Opslaan naar lokaal bestand’.");
+}
+function queueAutoSaveToLocalFile(){
+  if(!autoSaveLocalFile || !localFileHandle) return;
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => saveToLocalFile(false), 700);
+}
+
+function currentYear(){ return new Date().getFullYear(); }
+function quarterOf(dateString){
+  const d = new Date(dateString);
+  if(isNaN(d)) return null;
+  return Math.floor(d.getMonth()/3)+1;
+}
+function quarterKey(dateString){
+  const d = new Date(dateString);
+  if(isNaN(d)) return "";
+  return d.getFullYear() + "-Q" + quarterOf(dateString);
+}
+function quarterLabel(key){
+  const [y,q] = key.split("-Q");
+  return "Q" + q + " " + y;
+}
+function quarterDeadline(year, quarter){
+  const deadlines = {1:`${year}-04-30`,2:`${year}-07-31`,3:`${year}-10-31`,4:`${year+1}-01-31`};
+  return deadlines[quarter];
+}
+function daysUntil(dateStr){
+  const now = new Date();
+  const target = new Date(dateStr + "T23:59:59");
+  return Math.ceil((target - now)/(1000*60*60*24));
+}
+function calculateQuarterlyVAT(entries){
+  const out = {};
+  entries.forEach(entry => {
+    const key = quarterKey(entry.date);
+    if(!key) return;
+    if(!out[key]) out[key] = {omzet:0, btwAfTeDragen:0, voorbelasting:0, saldo:0};
+    const vat = vatAmount(entry);
+    if(entry.type === "Omzetfactuur"){
+      out[key].omzet += entry.amount;
+      out[key].btwAfTeDragen += vat;
+      out[key].saldo += vat;
+    }
+    if(["Uitgave betaald","Uitgave onbetaald","Investering betaald","Investering onbetaald"].includes(entry.type)){
+      out[key].voorbelasting += vat;
+      out[key].saldo -= vat;
+    }
+    if(entry.type === "BTW betaling"){
+      out[key].saldo -= totalIncl(entry);
+    }
+  });
+  return out;
+}
+function addQuote(){
+  const quote = {
+    id: uid(),
+    date: document.getElementById("o-date").value,
+    number: document.getElementById("o-number").value.trim(),
+    client: document.getElementById("o-client").value.trim(),
+    desc: document.getElementById("o-desc").value.trim(),
+    amount: parseFloat(document.getElementById("o-amount").value || "0"),
+    vat: parseFloat(document.getElementById("o-vat").value || "0"),
+    status: document.getElementById("o-status").value,
+    invoice: document.getElementById("o-invoice").value.trim(),
+    converted: false
+  };
+  if(!quote.date || !quote.client || !quote.desc || quote.amount <= 0){
+    alert("Vul minimaal datum, klant, omschrijving en bedrag in.");
+    return;
+  }
+  const quotes = getQuotes();
+  quotes.push(quote);
+  saveQuotes(quotes);
+  document.getElementById("o-number").value = "";
+  document.getElementById("o-client").value = "";
+  document.getElementById("o-desc").value = "";
+  document.getElementById("o-amount").value = "";
+  document.getElementById("o-invoice").value = "";
+  render();
+}
+function updateQuoteStatus(id, value){
+  const quotes = getQuotes().map(q => q.id === id ? {...q, status:value} : q);
+  saveQuotes(quotes);
+  render();
+}
+function convertQuoteToInvoice(id){
+  const quotes = getQuotes();
+  const idx = quotes.findIndex(q => q.id === id);
+  if(idx === -1) return;
+  const quote = quotes[idx];
+  if(quote.converted){
+    alert("Deze offerte is al omgezet.");
+    return;
+  }
+  const entry = {
+    id: uid(),
+    date: quote.date,
+    type: "Omzetfactuur",
+    desc: quote.desc,
+    relation: quote.client,
+    invoice: quote.invoice || quote.number || uid(),
+    category: quote.vat > 0 ? "Omzet hoog" : "Omzet nul",
+    amount: quote.amount,
+    vat: quote.vat
+  };
+  const entries = getData();
+  entries.push(entry);
+  saveData(entries);
+  quotes[idx] = {...quote, converted:true, status:"Geaccepteerd"};
+  saveQuotes(quotes);
+  render();
+  alert("Offerte omgezet naar omzetfactuur.");
+}
+function convertLatestAcceptedQuote(){
+  const quotes = getQuotes().filter(q => q.status === "Geaccepteerd" && !q.converted);
+  if(!quotes.length){
+    alert("Geen geaccepteerde offerte klaar om om te zetten.");
+    return;
+  }
+  convertQuoteToInvoice(quotes[quotes.length-1].id);
+}
+function renderQuotesTable(quotes){
+  if(!quotes.length) return '<div class="empty">Nog geen offertes.</div>';
+  return `
+    <table>
+      <thead>
+        <tr><th>Datum</th><th>Offertenr</th><th>Klant</th><th>Omschrijving</th><th>Excl. btw</th><th>Status</th><th>Actie</th></tr>
+      </thead>
+      <tbody>
+        ${quotes.sort((a,b)=> (b.date+b.id).localeCompare(a.date+a.id)).map(q => `
+          <tr>
+            <td>${q.date}</td>
+            <td>${q.number || ""}</td>
+            <td>${q.client}</td>
+            <td>${q.desc}</td>
+            <td>${euros(q.amount)}</td>
+            <td>
+              <select onchange="updateQuoteStatus('${q.id}', this.value)">
+                ${["Concept","Verzonden","Geaccepteerd","Afgewezen"].map(s => `<option ${q.status===s?"selected":""}>${s}</option>`).join("")}
+              </select>
+            </td>
+            <td>
+              ${q.converted ? `<span class="tag ok">Omgezet</span>` : `<button class="btn-secondary" style="padding:8px 10px" onclick="convertQuoteToInvoice('${q.id}')">Omzetten</button>`}
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+function renderQuarterTable(quarters){
+  const keys = Object.keys(quarters).sort();
+  if(!keys.length) return '<div class="empty">Nog geen btw-gegevens per kwartaal.</div>';
+  return `
+    <table>
+      <thead>
+        <tr><th>Kwartaal</th><th>Omzet</th><th>BTW af te dragen</th><th>Voorbelasting</th><th>Saldo</th><th>Deadline</th></tr>
+      </thead>
+      <tbody>
+        ${keys.map(k => {
+          const [year, qtxt] = k.split("-Q");
+          const q = Number(qtxt);
+          const deadline = quarterDeadline(Number(year), q);
+          return `<tr>
+            <td>${quarterLabel(k)}</td>
+            <td>${euros(quarters[k].omzet)}</td>
+            <td>${euros(quarters[k].btwAfTeDragen)}</td>
+            <td>${euros(quarters[k].voorbelasting)}</td>
+            <td>${euros(quarters[k].saldo)}</td>
+            <td>${deadline}</td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+}
+function renderBTWReminders(quarters){
+  const keys = Object.keys(quarters).sort();
+  if(!keys.length) return '<div class="empty">Nog geen btw-reminders.</div>';
+  return keys.map(k => {
+    const [year, qtxt] = k.split("-Q");
+    const q = Number(qtxt);
+    const deadline = quarterDeadline(Number(year), q);
+    const days = daysUntil(deadline);
+    const tagClass = days < 0 ? "bad" : (days <= 21 ? "warn" : "ok");
+    const text = days < 0 ? `Deadline voorbij (${Math.abs(days)} dagen)` : `${days} dagen tot deadline`;
+    return `<div class="row"><div><strong>${quarterLabel(k)}</strong><div class="small">Deadline ${deadline}</div></div><div><span class="tag ${tagClass}">${text}</span></div></div>`;
+  }).join("");
+}
+
+function switchTab(name){
+  document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === name));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
+}
+document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+
+document.getElementById("realBankInput").addEventListener("input", e => {
+  const s = getSettings(); s.realBank = e.target.value; saveSettings(s); render();
+});
+document.getElementById("realBankNote").addEventListener("input", e => {
+  const s = getSettings(); s.realBankNote = e.target.value; saveSettings(s); render();
+});
+
+document.getElementById("f-date").value = today();
+document.getElementById("o-date").value = today();
+updateLocalFileStatus("Nog geen lokaal opslagbestand gekozen. Gebruik eerst de knop ‘Kies / maak lokaal opslagbestand’.");
+render();
+</script>
+</body>
+</html>
